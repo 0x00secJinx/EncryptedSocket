@@ -1,4 +1,14 @@
 # EncryptedSocket
 A few python3.5 classes that encrypt data before sending with a set password
 
-The setup script, by default, only works with python3.5
+To install:
+	- Make a copy of the module
+	- Paste the copy into one of the PYTHONPATH directory
+	- e.g. (Ubuntu 17.04, python3.5):
+		- "cp EncryptedSocket.py /usr/lib/python3.5/EncryptedSocket.py"
+
+To use:
+	- Simply "import EncryptedSocket"
+
+Documentation:
+	(coming soon because it's 3 in the morning and I'm tired as fuck)

@@ -123,7 +123,6 @@ class EncryptedSocket(object):
 
         init_vec = data[:16]
         data = data[16:]
-        # print(len(iv))
         aes_cipher = AES.new(hashed_pass, AES.MODE_CBC, init_vec)
         decrypted_data = b""
 
@@ -137,8 +136,8 @@ class EncryptedSocket(object):
 
         try:
             return decrypted_data.decode('utf-8')
-        except socket.error as excp:
-            print("Socket error was caught: %s" % excp)
+        except Exception as excp:
+            print("Error was caught: %s" % excp)
             self.close_socket()
             sys.exit(-1)
 
@@ -149,7 +148,6 @@ class EncryptedSocket(object):
         Overridden in EncryptedServerSocket class
         """
 
-        print("Socket close method")
         self.sock.close()
 
 

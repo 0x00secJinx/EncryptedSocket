@@ -21,6 +21,7 @@ def main():
     client.connect_to_server("localhost", 15000)
     print(client.recv_data())
     client.send_data("This is a test from Client")
+    client.close_socket()
 
 if __name__ == '__main__':
     main()

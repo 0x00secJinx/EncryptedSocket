@@ -23,6 +23,7 @@ def main():
     server.accept_conns()
     server.send_data("This is a test from Server")
     print(server.recv_data())
+    server.close_socket()
 
 if __name__ == '__main__':
     main()
