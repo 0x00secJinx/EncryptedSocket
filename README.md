@@ -11,4 +11,4 @@ To use:
 	- Simply "import EncryptedSocket"
 
 Documentation:
-	(coming soon because it's 3 in the morning and I'm tired as fuck)
+	(coming soon because it's 3 in the morning and I cannot be bothered to do it at this time)
