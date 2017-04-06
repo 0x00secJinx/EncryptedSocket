@@ -1,157 +1,255 @@
+"""
+Module used to encrypt/decrypt the data being sent and recv'd from sockets
+"""
+
 import socket
-import struct
 import sys
 from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.Hash import SHA256
 
 
-# Class for an encrypted socket
-class EncryptedSocket:
+class EncryptedSocket(object):
 
-	# Class variables for the socket and password
-	SOCK = None
-	PASSW = None
+    """
+    Create a class that uses the socket module with the crypto module
+    to encrypt/decrypt data
+    """
 
-	# Set the password for the encryption and decryption methods
-	def set_passw(self, passw):
-		self.PASSW = passw
+    sock = None
+    passw = None
 
-	# Return the password that was set
-	def get_passw(self):
-		if self.PASSW is not None:
-			return self.PASSW
-		else:
-			print("No password was set")
-			return -1
+    def set_passw(self, passw):
 
-	# Method for creation of a socket
-	def create_socket(self, sock_family, sock_type):
-		if self.SOCK is None:
-			self.SOCK = socket.socket(sock_family, sock_type)
-			self.SOCK.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        """
+        set the password for the EncryptedSocket class
+        """
 
-	# Method to send data through the encrypt method and send the results
-	# Overridden in the EncryptedServerSocket to send over the accepted client sock
-	def send_data(self, data):
-		self.SOCK.send(self.encrypt(data))
+        self.passw = passw
 
-	# Method to receive data and pass the data into the decrypt method
-	# Returns a string with the padding (from the encryption method) removed
-	def recv_data(self):
-		data = b""
-		while True:
-			buffer = self.SOCK.recv(1024)
-			data += buffer
-			if len(buffer) < 1024:
-				break
+    def get_passw(self):
 
-		return self.decrypt(data).strip()
+        """
+        Return the class password if it was set
+        """
 
-	# Method to encrypt data with the set password
-	def encrypt(self, data):
+        if self.passw is not None:
+            return self.passw
+        else:
+            print("No password was set")
+            return -1
 
-		chunksize = 64 * 1024
+    def create_socket(self, sock_family, sock_type):
 
-		if self.PASSW is not None:
-			hasher = SHA256.new(self.PASSW.encode('utf-8'))
-			hashed_pass = hasher.digest()
-		else:
-			print("No password was set\nUse the set_passw(passw) method in the Encrypted Socket class")
-			sys.exit(1)
+        """
+        Method to create the socket
+        """
 
-		iv = Random.new().read(16)
-		aes_cipher = AES.new(hashed_pass, AES.MODE_CBC, iv)
-		encrypted_data = b""
+        if self.sock is None:
+            self.sock = socket.socket(sock_family, sock_type)
+            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-		chunks = [data[i:i+chunksize] for i in range(0, len(data), chunksize)]
+    def send_data(self, data):
 
-		for chunk in chunks:
-			if len(chunk) % 16 != 0:
-				chunk += " " * (16 - (len(chunk) % 16))
+        """
+        Method to send data through the encrypt method and send the results
+        This method is overridden in the EncryptedServerSocket class to send
+            data over the accepted client socket
+        """
 
-			encrypted_data += aes_cipher.encrypt(chunk)
+        self.sock.send(self.encrypt(data))
 
-		return (iv + encrypted_data)
+    def recv_data(self):
 
-	def decrypt(self, data):
+        """
+        Method to receive data and pass the data into the decrypt method
+        Returns a string with the padding (from the encryption method) removed
+        """
 
-		chunksize = 64 * 1024
+        data = b""
+        while True:
+            recv_buffer = self.sock.recv(1024)
+            data += recv_buffer
+            if len(recv_buffer) < 1024:
+                break
 
-		if self.PASSW is not None:
-			hasher = SHA256.new(self.PASSW.encode('utf-8'))
-			hashed_pass = hasher.digest()
-		else:
-			print("No password was set\nUse the set_passw(passw) method in the EncryptedSocket class")
-			sys.exit(1)
+        return self.decrypt(data).strip()
 
-		iv = data[:16]
-		data = data[16:]
-		#print(len(iv))
-		aes_cipher = AES.new(hashed_pass, AES.MODE_CBC, iv)
-		decrypted_data = b""
+    def encrypt(self, data):
 
-		chunks = [data[i:i+chunksize] for i in range(0, len(data), chunksize)]
+        """
+        Method to encrypt data with the set password
+        """
 
-		for chunk in chunks:
-			if len(chunk) % 16 != 0:
-				chunk += " " * (16 - (len(chunk) % 16))
+        chunksize = 64 * 1024
 
-			decrypted_data += aes_cipher.decrypt(chunk)
+        if self.passw is not None:
+            hasher = SHA256.new(self.passw.encode('utf-8'))
+            hashed_pass = hasher.digest()
+        else:
+            print("No password was set\nUse the set_passw(passw) method in the\
+                    Encrypted Socket class")
+            sys.exit(1)
 
-		try:
-			return decrypted_data.decode('utf-8')
-		except Exception as e:
-			print("Error: %s" % e)
-			self.close_socket()
-			sys.exit(-1)
+        init_vec = Random.new().read(16)
+        aes_cipher = AES.new(hashed_pass, AES.MODE_CBC, init_vec)
+        encrypted_data = b""
 
-	# Overridden in EncryptedServerSocket class
-	def close_socket(self):
-		print("Socket close method")
-		self.SOCK.close()
+        chnks = [data[i:i + chunksize] for i in range(0, len(data), chunksize)]
+
+        for chunk in chnks:
+            if len(chunk) % 16 != 0:
+                chunk += " " * (16 - (len(chunk) % 16))
+
+            encrypted_data += aes_cipher.encrypt(chunk)
+
+        return (init_vec + encrypted_data)
+
+    def decrypt(self, data):
+
+        """
+        Method to decrypt data with the set password
+        """
+
+        chunksize = 64 * 1024
+
+        if self.passw is not None:
+            hasher = SHA256.new(self.passw.encode('utf-8'))
+            hashed_pass = hasher.digest()
+        else:
+            print("No password was set\nUse the set_passw(passw) method in the\
+                     EncryptedSocket class")
+            sys.exit(1)
+
+        init_vec = data[:16]
+        data = data[16:]
+        # print(len(iv))
+        aes_cipher = AES.new(hashed_pass, AES.MODE_CBC, init_vec)
+        decrypted_data = b""
+
+        chnks = [data[i:i + chunksize] for i in range(0, len(data), chunksize)]
+
+        for chunk in chnks:
+            if len(chunk) % 16 != 0:
+                chunk += " " * (16 - (len(chunk) % 16))
+
+            decrypted_data += aes_cipher.decrypt(chunk)
+
+        try:
+            return decrypted_data.decode('utf-8')
+        except socket.error as excp:
+            print("Socket error was caught: %s" % excp)
+            self.close_socket()
+            sys.exit(-1)
+
+    def close_socket(self):
+
+        """
+        Close the open sockets
+        Overridden in EncryptedServerSocket class
+        """
+
+        print("Socket close method")
+        self.sock.close()
 
 
 class EncryptedServerSocket(EncryptedSocket):
 
-	CLIENT_SOCK = None
+    """
+    Class that expands on EncryptedSocket with socket server functions
+        (listen, accept, bind...)
+    """
 
-	def listen_for_conns(self):
-		self.SOCK.listen(5)
+    client_sock = None
+    client_addr = None
 
-	def accept_conns(self):
-		con, addr = self.SOCK.accept()
-		self.CLIENT_SOCK = con
+    def listen_for_conns(self):
 
-	def bind_socket(self, port):
-		self.SOCK.bind(("", int(port)))
+        """
+        Method to listen for incoming connections
+        """
 
-	def send_data(self, data):
-		try:
-			self.CLIENT_SOCK.send(self.encrypt(data))
-		except Exception as e:
-			print("Error: %s" % e)
+        self.sock.listen(1)
 
-	def recv_data(self):
-		data = b""
-		while True:
-			buffer = self.CLIENT_SOCK.recv(1024)
-			data += buffer
-			if len(buffer) < 1024:
-				break
+    def accept_conns(self):
 
-		return self.decrypt(data).strip()
+        """
+        Accept incoming connections
+        """
 
-	def close_socket(self):
-		print("Server close method")
-		self.CLIENT_SOCK.close()
-		self.SOCK.close()
+        con, addr = self.sock.accept()
+        self.client_sock = con
+        self.client_addr = addr
+
+    def bind_socket(self, host, port):
+
+        """
+        Bind socket to specified address and port
+        """
+
+        self.sock.bind((host, int(port)))
+
+    def send_data(self, data):
+
+        """
+        Send data after it has been encrypted
+        Overrides the parent 'send_data' method as to send the data
+            through the client socket
+        """
+
+        try:
+            self.client_sock.send(self.encrypt(data))
+        except socket.error as excp:
+            print("Error: %s" % excp)
+            self.close_socket()
+            sys.exit(-1)
+
+    def recv_data(self):
+
+        """
+        Receive data and decrypt
+        Overrides the parent 'recv_data' method to recv data from
+            the client socket
+        """
+
+        data = b""
+        while True:
+            recv_buffer = self.client_sock.recv(1024)
+            data += recv_buffer
+            if len(recv_buffer) < 1024:
+                break
+
+        return self.decrypt(data).strip()
+
+    def close_socket(self):
+
+        """
+        Close both socket (client and server)
+        Overrides the parent 'close_socket' method to close the client socket
+            and the listening socket
+        """
+
+        #print("Server close method")
+        self.client_sock.close()
+        self.sock.close()
+
 
 class EncryptedClientSocket(EncryptedSocket):
 
-	def connect_to_server(self, host, port):
-		try:
-			self.SOCK.connect((host, int(port)))
-			#print("Connected to server")
-		except Exception as e:
-			print("Error: %s" % e)
+    """
+    Class that expands on EncryptedSocket with client socket functions
+        (connect)
+    """
+
+    def connect_to_server(self, host, port):
+
+        """
+        Connect to the specified host
+        """
+
+        try:
+            self.sock.connect((host, int(port)))
+            # print("Connected to server")
+        except socket.error as excp:
+            print("Error: %s" % excp)
+            sys.exit(-1)
