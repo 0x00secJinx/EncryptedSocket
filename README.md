@@ -13,30 +13,31 @@ To use:
 Documentation:
     Make and config the socket:
     Client:
-        ```
-        client = EncryptedSocket.EncryptedClientSocket()
-        client.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.set_passw("[password]")
-        client.connect_to_server("[host]", [port])
-        ```
+
+```
+client = EncryptedSocket.EncryptedClientSocket()
+client.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+client.set_passw("[password]")
+client.connect_to_server("[host]", [port])
+```
     Server:
-        ```
-        server = EncryptedSocket.EncryptedServerSocket()
-        server.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        server.set_passw("[password]")
-        server.bind_socket("", [port])
-        server.listen_for_cons()
-        server.accept_conns()
-        ```
+```
+server = EncryptedSocket.EncryptedServerSocket()
+server.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+server.set_passw("[password]")
+server.bind_socket("", [port])
+server.listen_for_cons()
+server.accept_conns()
+```
     Sending and Receiving Data:
-        ```
-        client.send_data("[string of data]")
-        server.send_data("[string of data]")
-        print(client.recv_data())
-        print(server.recv_data())
-        ```
+```
+client.send_data("[string of data]")
+server.send_data("[string of data]")
+print(client.recv_data())
+print(server.recv_data())
+```
     Close Sockets:
-        ```
-        server.close_socket()
-        client.close_socket()
-        ```
+```
+server.close_socket()
+client.close_socket()
+```
