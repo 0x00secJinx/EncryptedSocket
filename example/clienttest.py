@@ -4,8 +4,6 @@ Script to test the EncryptedSocket client class
 """
 
 import socket
-import sys
-sys.path.insert(0, "../")
 import EncryptedSocket
 
 

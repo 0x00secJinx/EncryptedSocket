@@ -136,7 +136,11 @@ class EncryptedSocket(object):
 
         try:
             return decrypted_data.decode('utf-8')
-        except Exception as excp:
+        except socket.error as excp:
+            print("Socket error was caught: %s" % excp)
+            self.close_socket()
+            sys.exit(-1)
+        except RuntimeWarning as excp:
             print("Error was caught: %s" % excp)
             self.close_socket()
             sys.exit(-1)
@@ -161,13 +165,13 @@ class EncryptedServerSocket(EncryptedSocket):
     client_sock = None
     client_addr = None
 
-    def listen_for_conns(self):
+    def listen_for_cons(self):
 
         """
         Method to listen for incoming connections
         """
 
-        self.sock.listen(1)
+        self.sock.listen(5)
 
     def accept_conns(self):
 
