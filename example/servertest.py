@@ -4,8 +4,6 @@ Script to test the EncryptedSocket server class
 """
 
 import socket
-import sys
-sys.path.insert(0, "../")
 import EncryptedSocket
 
 
@@ -19,7 +17,7 @@ def main():
     server.create_socket(socket.AF_INET, socket.SOCK_STREAM)
     server.set_passw("test")
     server.bind_socket("", 15000)
-    server.listen_for_conns()
+    server.listen_for_cons()
     server.accept_conns()
     server.send_data("This is a test from Server")
     print(server.recv_data())
