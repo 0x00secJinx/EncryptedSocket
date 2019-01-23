@@ -8,19 +8,23 @@ import socket
 import sys
 
 class EncryptedSocket(object):
-	def __init__(self, sock, privkey_file, server=False):
+	def __init__(self, sock, privkey_file, pubkey_file, server=False):
 		self.s = sock
 		self.priv_file = privkey_file
+		self.pub_file = pubkey_file
 		self.priv_key = None
-		self.pub_key = None
+		self.pub_key_bytes = None
 		self.peer_pub = None
 		self.shared_secret = None
 		self.server = server
 		self.encrypter = None
 
+
+	def load_keys(self):
 		with open(self.priv_file, "rb") as priv:
 			self.priv_key = serialization.load_pem_private_key(priv.read(), password=None, backend=default_backend())
-		self.pub_key = self.priv_key.public_key()
+		with open(self.pub_file, "rb") as pub:
+			self.pub_key_bytes = pub.read()
 
 
 	def get_peer_key(self):
@@ -29,7 +33,7 @@ class EncryptedSocket(object):
 
 	def send_pub_key(self):
 
-		self.s.send(self.pub_key)
+		self.s.send(self.pub_key_bytes)
 
 	def connect(self, serv_addr):
 		if not self.server:
@@ -47,7 +51,7 @@ class EncryptedSocket(object):
 	def accept(self):
 		if self.server:
 			conn, addr = self.s.accept()
-			enc_conn = EncryptedSocket(conn, self.priv_file, server=True)
+			enc_conn = EncryptedSocket(conn, self.priv_file, self.pub_file, server=True)
 			enc_conn.exchange_keys()
 			return enc_conn
 		else:
@@ -92,15 +96,23 @@ class EncryptedSocket(object):
 		self.encrypter = Fernet(self.shared_secret)
 
 	def generate_new_keys(self):
-		with open(self.privkey_file, "wb") as priv_file:
-			p = ec.generate_private_key(ec.SECP348R1(), default_backend())
+		with open(self.priv_file, "wb") as priv_file:
+			p = ec.generate_private_key(ec.SECP384R1(), default_backend())
 			pem = p.private_bytes(encoding=serialization.Encoding.PEM,
 								  format=serialization.PrivateFormat.TraditionalOpenSSL,
 								  encryption_algorithm=serialization.NoEncryption())
 			priv_file.write(pem)
+		with open(self.pub_file, "wb") as pub_file:
+			pub = p.public_key()
+			pemp = pub.public_bytes(encoding=serialization.Encoding.PEM,
+								   format=serialization.PublicFormat.SubjectPublicKeyInfo)
+			pub_file.write(pemp)
 
 	def send(self, data):
 		self.s.send(self.encrypter.encrypt(data.encode('UTF-8')))
 
 	def recv(self, length):
 		return self.encrypter.decrypt(self.s.recv(length))
+
+	def close(self):
+		self.s.close()
