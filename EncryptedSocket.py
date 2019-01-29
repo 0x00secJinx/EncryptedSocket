@@ -21,6 +21,19 @@ class EncryptedSocket(object):
 
 
 	def load_keys(self):
+
+		"""
+		@function 
+			load_keys
+
+		@params
+			@ self - the EncryptedSocket class
+
+		@description
+			load the private and public key pair from the provided files for the class
+			these keys will be used to find a shared secret between the peers
+		"""
+
 		with open(self.priv_file, "rb") as priv:
 			self.priv_key = serialization.load_pem_private_key(priv.read(), password=None, backend=default_backend())
 		with open(self.pub_file, "rb") as pub:
@@ -28,27 +41,110 @@ class EncryptedSocket(object):
 
 
 	def get_peer_key(self):
+
+		"""
+		@function
+			get_peer_key
+
+		@params
+			@ self - The EncryptedSocket class
+
+		@description
+			set the received data to the self.peer_pub class variable
+			The user should not call this function as it is used for
+			the exchange_keys function
+		"""
 		
 		self.peer_pub = self.s.recv(4096)
 
 	def send_pub_key(self):
 
+		"""
+		@function
+			send_pub_key
+
+		@params
+			@ self - The EncryptedSocket class
+
+		@decription
+			send the public key bytes to the peer
+			users should not call this function as it is used for
+			the exchange_keys function
+		"""
+
 		self.s.send(self.pub_key_bytes)
 
 	def connect(self, serv_addr):
+
+		"""
+		@function
+			connect
+
+		@params
+			@ self - The EncryptedSocket class
+			@ serv_addr - a tuple containing the server's ip address
+						  and the port to connect to. Just like the 
+						  socket module connect parameters. (eg. ("github.com", 80))
+
+		@description
+			connect to the server using the address given
+			If the class was specified with server=True,
+			this function will raise a RuntimeError
+		"""
+
 		if not self.server:
 			self.s.connect(serv_addr)
 			self.exchange_keys()
+		else:
 			raise RuntimeError("connect cannot be called when class is created with server=True")
 
 
 	def listen(self, backlog):
+
+		"""
+		@function
+			listen
+
+		@params
+			@ self - The EncryptedSocket class
+			@ backlog - 
+
+		@description
+			calls the listen function on the socket provided to the class
+			if the class was initilized with server=False the function
+			will raise a RuntimeError as clients do not need to call the
+			listen function
+		"""
+
 		if self.server:
 			self.s.listen(backlog)
 		else:
 			raise RuntimeError("listen function requires the class to be defined with server=True")
 
 	def accept(self):
+
+		"""
+		@function
+			accept
+
+		@params
+			@ self - The EncryptedSocket class
+
+		@description
+			calls the accept function on the provided socket and creates a 
+			new EncryptedSocket class with the client socket. The key file from
+			the parent class are used and the server parameter is set to True as
+			this is the socket the server will use to communicate with the client
+			The server will then exchange keys with the client to get their shared
+			secret to use for communication
+
+			If the class was initialized with server=False the function will raise a
+			RuntimeError as the client does not need to call the accept function
+
+		@returns
+			A new EncryptedSocket class to communicate with the client
+		"""
+
 		if self.server:
 			conn, addr = self.s.accept()
 			enc_conn = EncryptedSocket(conn, self.priv_file, self.pub_file, server=True)
@@ -58,12 +154,43 @@ class EncryptedSocket(object):
 			raise RuntimeError("accept function requires the class to be defined with server=True")
 
 	def bind(self, bind_addr):
+
+		"""
+		@function
+			bind
+
+		@params
+			@self - The EncryptedSocket class
+			@bind_addr - A tuple containing the address for the socket to bind to
+						 
+		@description
+			Directly calls the bind() function on the provided socket and passes
+			the exact tuple passed to the function. (Subject to change)
+
+			If the class was initialized with server=False the function will raise
+			a RuntimeError as the client should not call the bind function
+		"""
+
 		if self.server:
 			self.s.bind(bind_addr)
 		else:
 			raise RuntimeError("bind function requires the class to be defined with server=True")
 
 	def exchange_keys(self):
+
+		"""
+		@function
+			exchange_keys
+
+		@params
+			@self - The EncryptedSocket class
+
+		@description
+			Use Elliptical Curve Diffie-Hellman key exchange to get a shared
+			secret to use for encrypting and decrypting data. Once the shared
+			secret is derived, store it in the class's self.shared_secret variable
+		"""
+
 		if self.server:
 			self.send_pub_key()
 			self.get_peer_key()
@@ -96,6 +223,20 @@ class EncryptedSocket(object):
 		self.encrypter = Fernet(self.shared_secret)
 
 	def generate_new_keys(self):
+
+		"""
+		@function
+			generate_new_keys
+
+		@params
+			@self - The EncryptedSocket class
+
+		@description
+			This function generates a 384-bit ECC private key and the
+			corresponding public key and serializes the data and saves
+			them in the files passed into the class
+		"""
+
 		with open(self.priv_file, "wb") as priv_file:
 			p = ec.generate_private_key(ec.SECP384R1(), default_backend())
 			pem = p.private_bytes(encoding=serialization.Encoding.PEM,
@@ -109,10 +250,52 @@ class EncryptedSocket(object):
 			pub_file.write(pemp)
 
 	def send(self, data):
+
+		"""
+		@function
+			send
+
+		@params
+			@ self - The EncryptedSocket class
+			@ data - The data to send through the socket
+					 Data is encoded to bytes
+
+		@description
+			The data passed as parameter is encoded to bytes then encrypted
+			then sent to the peer
+		"""
+
 		self.s.send(self.encrypter.encrypt(data.encode('UTF-8')))
 
 	def recv(self, length):
+
+		"""
+		@function
+			recv
+
+		@params
+			@self - The EncryptedSocket class
+			@length - the amount of bytes to recv from the socket
+
+		@description
+			The function calls the recv function on the socket with the
+			specified length. The data is then decoded and returned
+		"""
+
 		return self.encrypter.decrypt(self.s.recv(length))
 
 	def close(self):
+
+		"""
+		@function
+			close
+
+		@params
+			@self - The EncryptedSocket class
+
+		@description
+			The function calls the close() method for the socket passed to 
+			the class
+		"""
+
 		self.s.close()
