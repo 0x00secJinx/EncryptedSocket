@@ -3,9 +3,9 @@
 from distutils.core import setup
 
 setup(name='EncryptedSocket',
-      version='1.0',
+      version='2.0',
       description='Python Encrypted Sockets',
-      author='0x00secJinx',
-      author_email='0x00sec_jinx@protonmail.ch',
-      url='https://www.github.com/0x00secJinx/EncryptedSocket.git',
+      author='Mason Weaver',
+      author_email='mweaver1501@gmail.com',
+      url='https://github.com/MasonWeaver/EncryptedSocket',
       py_modules=['EncryptedSocket'],)
