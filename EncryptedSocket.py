@@ -237,41 +237,6 @@ class EncryptedSocket(object):
 								   format=serialization.PublicFormat.SubjectPublicKeyInfo)
 			pub_file.write(pemp)
 
-	def send(self, data):
-
-		"""
-		@function
-			send
-
-		@params
-			@ self - The EncryptedSocket class
-			@ data - The data to send through the socket
-					 Data is encoded to bytes
-
-		@description
-			The data passed as parameter is encoded to bytes then encrypted
-			then sent to the peer
-		"""
-
-		self.s.send(self.encrypt_data(data))
-
-	def recv(self, length):
-
-		"""
-		@function
-			recv
-
-		@params
-			@self - The EncryptedSocket class
-			@length - the amount of bytes to recv from the socket
-
-		@description
-			The function calls the recv function on the socket with the
-			specified length. The data is then decoded and returned
-		"""
-
-		return self.decrypt_data(self.s.recv(length))
-
 	def close(self):
 
 		"""
@@ -289,6 +254,22 @@ class EncryptedSocket(object):
 		self.s.close()
 
 	def encrypt_data(self, data):
+
+		"""
+		@function
+			encrypt_data
+
+		@params
+			@ self - The EncryptedSocket class
+			@ data - The data string to encrypt
+
+		@description
+			Take the data passed in the data param and encrypt it
+			using AES with the shared secret. The IV is prepended
+			to the data to make it available to the peer
+			This method returns the cipher text of the data.
+		"""
+
 		iv = os.urandom(16)
 		data = self.add_padding(data)
 		try:
@@ -302,6 +283,21 @@ class EncryptedSocket(object):
 		return cipher_text
 
 	def decrypt_data(self, data):
+
+		"""
+		@function
+			decrypt_data
+
+		@param
+			@ self - The EncryptedSocket class
+			@ data - The bytes to decrypt
+
+		@description
+			Take the bytes passed and decrypt them using AES with the
+			shared key. The iv is spliced from the data sent. This 
+			method returns the plain text of the data
+		"""
+
 		iv = data[:16]
 		data = data[16:]
 		cipher = Cipher(algorithms.AES(self.shared_secret), modes.CBC(iv), backend=default_backend())
@@ -310,15 +306,56 @@ class EncryptedSocket(object):
 		return plain_text
 
 	def send_data(self, data):
+
+		"""
+		@function
+			send_data
+
+		@params
+			@ self - The EncryptedSocket class
+			@ data - The data to send through the socket
+					 Data is encoded to bytes
+
+		@description
+			The data passed as parameter is encoded to bytes then encrypted
+			then sent to the peer
+		"""
+
 		self.s.send(self.encrypt_data(data))
 
 	def recv_data(self, length):
+
+		"""
+		@function
+			recv_data
+
+		@params
+			@self - The EncryptedSocket class
+			@length - the amount of bytes to recv from the socket
+
+		@description
+			The function calls the recv function on the socket with the
+			specified length. The data is then decoded and returned
+		"""
+		
 		return self.decrypt_data(self.s.recv(length))
 
-	def close(self):
-		self.s.close()
-
 	def add_padding(self, data):
+
+		"""
+		@function
+			add_padding
+
+		@params
+			@ self - The EncryptedSocket class
+			@ data - The data to add padding to
+
+		@description
+			This function takes data and adds spaces to make sure
+			the length is a multiple of 16. AES requires block
+			sizes and 16 is our block size
+		"""
+
 		if (len(data) % 16 != 0):
 			data = data + " " * (16 - (len(data) % 16))
 
