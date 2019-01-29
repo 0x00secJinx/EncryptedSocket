@@ -1,27 +1,22 @@
-#!/usr/bin/python3.5 -B
-"""
-Script to test the EncryptedSocket server class
-"""
-
+#!/usr/bin/env python
 import socket
-import EncryptedSocket
-
+from EncryptedSocket import EncryptedSocket
 
 def main():
-
-    """
-    Make the Encrypted server class and test the class
-    """
-
-    server = EncryptedSocket.EncryptedServerSocket()
-    server.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.set_passw("test")
-    server.bind_socket("", 15000)
-    server.listen_for_cons()
-    server.accept_conns()
-    server.send_data("This is a test from Server")
-    print(server.recv_data())
-    server.close_socket()
+	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+	s = EncryptedSocket(sock, "priv.pem", "pub.pem", server=True)
+	s.generate_new_keys()
+	s.load_keys()
+	s.bind(("", 8025))
+	s.listen(5)
+	print("Bound to port 8025")
+	while True:
+		conn = s.accept()
+		data = conn.recv_data(4096)
+		conn.send_data(data)
+		conn.close()
+	s.close()
 
 if __name__ == '__main__':
-    main()
+	main()
